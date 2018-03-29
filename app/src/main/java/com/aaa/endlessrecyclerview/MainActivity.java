@@ -15,7 +15,7 @@ import android.view.MenuItem;
 
 import com.aaa.endlessrecyclerview.utils.Utils;
 
-import java.util.TreeMap;
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements TwoWayEndlessAdapter.Callback, SwipeRefreshLayout.OnRefreshListener {
 
@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity implements TwoWayEndlessAdap
         recyclerView.setLayoutManager(layoutManager);
 
         endlessAdapter = new TwoWayEndlessAdapterImp<>();
-        endlessAdapter.setDataContainer(new TreeMap<Integer, ValueItem>());
+        endlessAdapter.setDataContainer(new ArrayList<ValueItem>());
         endlessAdapter.addItemsAtBottom(Utils.generateDummyItemsList(15));
 
         endlessAdapter.setEndlessCallback(this);
@@ -120,12 +120,12 @@ public class MainActivity extends AppCompatActivity implements TwoWayEndlessAdap
         @Override
         public void onResponse(Object result)
         {
+            refreshLayout.setRefreshing(false);
+
             if (dataLoader != null) {
                 dataLoader.cancel(true);
                 dataLoader = null;
             }
-
-            refreshLayout.setRefreshing(false);
 
             if (result instanceof Integer) {
                 endlessAdapter.addItemsAtTop(Utils.generateDummyItemsList((Integer) result));
@@ -136,15 +136,13 @@ public class MainActivity extends AppCompatActivity implements TwoWayEndlessAdap
     @Override
     public void onRefresh()
     {
-        if (isAtTop && dataLoader != null) {
+        if (dataLoader != null) {
             dataLoader.cancel(true);
             dataLoader = null;
         }
 
-        if (dataLoader == null) {
-            dataLoader = new DummyDataLoader();
-            dataLoader.setDataLoaderCallback(swipeResponseCallback);
-            dataLoader.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        }
+        dataLoader = new DummyDataLoader();
+        dataLoader.setDataLoaderCallback(swipeResponseCallback);
+        dataLoader.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 }

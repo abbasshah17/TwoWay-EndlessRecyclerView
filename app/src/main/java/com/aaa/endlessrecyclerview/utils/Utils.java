@@ -22,7 +22,7 @@ public class Utils {
 
         for (int i = 0; i < numOfItems; i++) {
             ValueItem item = new ValueItem();
-            item.data = "This is the no. " + String.valueOf(numOfItemsCreated++) + " item.";
+            item.data = "This is the no. " + String.valueOf(++numOfItemsCreated) + " item.";
             list.add(item);
         }
 

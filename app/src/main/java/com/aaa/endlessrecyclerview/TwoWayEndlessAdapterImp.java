@@ -44,4 +44,10 @@ public class TwoWayEndlessAdapterImp<VH extends RecyclerView.ViewHolder> extends
                 break;
         }
     }
+
+    @Override
+    public int getItemCount()
+    {
+        return data == null ? 0 : data.size();
+    }
 }

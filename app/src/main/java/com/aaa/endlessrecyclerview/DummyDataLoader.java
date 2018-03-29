@@ -21,13 +21,13 @@ public class DummyDataLoader extends AsyncTask<Void, Void, Integer> {
     protected Integer doInBackground(Void... voids)
     {
         try {
-            TimeUnit.SECONDS.sleep(5);
+            TimeUnit.SECONDS.sleep(2);
         }
         catch (InterruptedException iEx) {
             iEx.printStackTrace();
         }
 
-        return 15;
+        return 20;
     }
 
     @Override

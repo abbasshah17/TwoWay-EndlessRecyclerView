@@ -7,59 +7,42 @@ import android.support.v7.widget.RecyclerView;
 import com.aaa.endlessrecyclerview.utils.EndlessLogger;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
  * The {@link TwoWayEndlessAdapter} class provides an implementation to manage two end data
  * insertion into a {@link RecyclerView} easy by handling all of the logic within.
- * <p>To implement a TwoWayEndlessAdapter simply needs to extend from it and provide
- * the class type parameter to bind view to. This </p>
+ * <p>To implement a TwoWayEndlessAdapter simply extend from it, provide the class type parameter
+ * of the data type and <code>Override onBindViewHolder(ViewHolder, DataItem, int)</code> to bind
+ * the view to.</p>
  *
- * @param <DataItem> A class that will used by the data adapter, like a {@link ArrayList} or
- * {@link java.util.HashMap}.
+ * @param <DataItem> A class type that can used by the data adapter.
  * @version 1.0.0
  * @author Abbas
  * @see android.support.v7.widget.RecyclerView.Adapter
+ * @see TwoWayEndlessAdapterImp
  */
 
 public abstract class TwoWayEndlessAdapter<VH extends RecyclerView.ViewHolder, DataItem> extends RecyclerView.Adapter<VH> {
 
     /*
-    * Median of Integer.MAX_VALUE and Integer.MIN_VALUE
-    * To allow maximum number of new items on both ends.
-    * */
-    private static final int MEDIAN = 1073741823;
-
-    /*
     * Data Adapter Container.
     * */
-    protected Map<Integer, DataItem> data;
+    protected List<DataItem> data;
 
     private Callback mEndlessCallback = null;
 
     /*
-    * Number of items loaded from bottom scroll/lazy loading.
-    * */
-    private int bottomCurrentLimit = MEDIAN;
-
-    /*
-    * Number of items loaded from top scroll/refresh.
-    * */
-    private int topCurrentLimit = MEDIAN;
-
-    /*
-    * Holds the position of the first item in the Data Adapter.
-    * */
-    private int zeroPositionPointer = -1;
-
-    /*
-    * Number of items before the last to get the lazy loading callback.
+    * Number of items before the last to get the lazy loading callback to load more items.
     * */
     private int bottomAdvanceCallback = 0;
 
     private boolean isFirstBind = true;
 
     /**
+     * @param callback A listener to set if want to receive bottom and top reached callbacks.
      * @see TwoWayEndlessAdapter.Callback
      */
     public void setEndlessCallback(Callback callback)
@@ -82,17 +65,11 @@ public abstract class TwoWayEndlessAdapter<VH extends RecyclerView.ViewHolder, D
             return;
         }
 
-        if (topCurrentLimit == MEDIAN) {
-            zeroPositionPointer = MEDIAN;
-        }
+        int adapterSize = getItemCount();
 
-        int initialRange = getItemCount();
+        data.addAll(adapterSize, bottomList);
 
-        for (int i = 0; i < bottomList.size(); i++) {
-            data.put(bottomCurrentLimit++, bottomList.get(i));
-        }
-
-        notifyItemRangeInserted(initialRange, bottomList.size());
+        notifyItemRangeInserted(adapterSize, adapterSize + bottomList.size());
     }
 
     /**
@@ -110,11 +87,8 @@ public abstract class TwoWayEndlessAdapter<VH extends RecyclerView.ViewHolder, D
             return;
         }
 
-        for (int i = 0; i < topList.size(); i++) {
-            data.put(--topCurrentLimit, topList.get(i));
-        }
-
-        zeroPositionPointer = topCurrentLimit;
+        Collections.reverse(topList);
+        data.addAll(0, topList);
 
         notifyItemRangeInserted(0, topList.size());
     }
@@ -136,7 +110,7 @@ public abstract class TwoWayEndlessAdapter<VH extends RecyclerView.ViewHolder, D
     /**
      * Provide an instance of {@link Map} where the data will be stored.
      * */
-    public void setDataContainer(Map<Integer, DataItem> data)
+    public void setDataContainer(List<DataItem> data)
     {
         this.data = data;
     }
@@ -166,7 +140,7 @@ public abstract class TwoWayEndlessAdapter<VH extends RecyclerView.ViewHolder, D
     {
         EndlessLogger.logD("onBindViewHolder() for position : " + position);
 
-        onBindViewHolder(holder, data.get(getRelativePosition(position)), position);
+        onBindViewHolder(holder, data.get(position), position);
 
         if (position == 0 && !isFirstBind) {
             notifyTopReached();
@@ -194,54 +168,13 @@ public abstract class TwoWayEndlessAdapter<VH extends RecyclerView.ViewHolder, D
      * Any class that extends from {@link TwoWayEndlessAdapter} must Override this method.
      *
      * @param holder The ViewHolder which should be updated to represent the contents of the
-     *        item at the given position in the data set.
-     * @param data The data class object which contains the updated content that represents the
-     *        item at the given position in the data set.
+     *               item at the given position in the data set.
+     * @param data The data class object associated with the corresponding position which contains
+     *            the updated content that represents the item at the given position in the data
+     *            set.
      * @param position The position of the item within the adapter's data set.
      */
     public abstract void onBindViewHolder(VH holder, DataItem data, int position);
-
-    /**
-     * Returns the total number of items in the data set held by the adapter.
-     *
-     * <p>
-     *     Any class that extends {@link TwoWayEndlessAdapter} should not implement this method
-     *     without completely understanding how {@link #bottomCurrentLimit} and
-     *     {@link #topCurrentLimit} works alongside {@link #MEDIAN}.
-     * </p>
-     *
-     * @return The total number of items in this adapter.
-     */
-    @Override
-    public int getItemCount()
-    {
-        if (data == null || data.isEmpty()) {
-            return 0;
-        }
-        int count = bottomCurrentLimit - topCurrentLimit;
-        return count > 0 ? count : 0;
-    }
-
-    /**
-     * Maps the the sane position i.e. from 0,1,2,3... to the positions held by the data adapter.
-     * @param offset The sane position i.e. 0,1,2,3... of the data adapter.
-     * @return The mapped position from sane position to the position held by {@link #data}
-     */
-    protected int getRelativePosition(int offset)
-    {
-        int relativePosition = zeroPositionPointer + offset;
-
-        if (data.get(relativePosition) == null) {
-            EndlessLogger.logD("Type DataItem is null at offset='" + offset
-                    + "', Relative Position='" + (zeroPositionPointer + offset)
-                    + "', Zero Position Pointer='" + zeroPositionPointer
-                    + "', Top Current Limit='" + topCurrentLimit
-                    + "', Bottom Current Limit='" + bottomCurrentLimit
-            );
-        }
-
-        return relativePosition;
-    }
 
     /**
      * Sends the {@link Callback#onTopReached} callback if provided.
